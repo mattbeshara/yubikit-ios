@@ -239,6 +239,8 @@ List of sessions is documented below with it's own specifics and samples:
 
 - [Management](./docs/mgmt.md) - Provides ability to enable or disable available application on YubiKey
 
+- [SmartCardInterface](./docs/smartcard-interface.md) - Provides ability to enable or disable available application on YubiKey
+
 
 For lower level access to the Yubikey there's also a `YKFSmartCardInterface` with which you can send APDUs to the key.
 
