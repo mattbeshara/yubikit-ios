@@ -22,7 +22,8 @@ class OtherDemosTableViewController: UITableViewController {
     
     private let otherDemosPCSCDemoSegueID = "OtherDemosPCSCDemoSegueID"
     private let otherDemosRawCommandsDemoSegueID = "OtherDemosRawCommandsDemoSegueID"
-    
+    private let otherDemosRawCommandsOpenPGPDemoSegueID = "OtherDemosRawCommandsOpenPGPDemoSegueID"
+
     private let otherDemosFIDO2DemoSegueID = "OtherDemosFIDO2DemoSegueID"
     private let otherDemosU2FDemoSegueID = "OtherDemosU2FDemoSegueID"
     
@@ -35,7 +36,7 @@ class OtherDemosTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         switch section {
         case 0:
-            return 2
+            return 3
         case 1:
             return 2
         default:
@@ -65,7 +66,12 @@ class OtherDemosTableViewController: UITableViewController {
                 cell.textLabel!.text = "Raw Commands Demo"
                 cell.detailTextLabel!.text = "Reads a PIV certificate using the Raw Commands Service."
                 break
-                
+
+            case 2:
+                cell.textLabel!.text = "Raw Commands OpenPGP Demo"
+                cell.detailTextLabel!.text = "Reads an OpenPGP using the Raw Commands Service."
+                break
+
             default:
                 fatalError()
             }
@@ -112,6 +118,8 @@ class OtherDemosTableViewController: UITableViewController {
                 performSegue(withIdentifier: otherDemosPCSCDemoSegueID, sender: self)
             case 1:
                 performSegue(withIdentifier: otherDemosRawCommandsDemoSegueID, sender: self)
+            case 2:
+                performSegue(withIdentifier: otherDemosRawCommandsOpenPGPDemoSegueID, sender: self)
             default:
                 fatalError()
             }
