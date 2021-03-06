@@ -76,6 +76,7 @@
 		95FAFACE202C483E00121DD5 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 95FAFACC202C483E00121DD5 /* Main.storyboard */; };
 		95FAFAD0202C483E00121DD5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 95FAFACF202C483E00121DD5 /* Assets.xcassets */; };
 		95FAFAD3202C483E00121DD5 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 95FAFAD1202C483E00121DD5 /* LaunchScreen.storyboard */; };
+		C9CF64EF25F31BFF00E8A8D3 /* RawCommandOpenPGPServiceDemoViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9CF64EE25F31BFF00E8A8D3 /* RawCommandOpenPGPServiceDemoViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -152,6 +153,7 @@
 		95FAFACF202C483E00121DD5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		95FAFAD2202C483E00121DD5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		95FAFAD4202C483E00121DD5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		C9CF64EE25F31BFF00E8A8D3 /* RawCommandOpenPGPServiceDemoViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RawCommandOpenPGPServiceDemoViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -221,6 +223,7 @@
 				95EAD56A220872EE00CD7C18 /* OtherDemoRootViewController.swift */,
 				95DA54D42194601500B60C18 /* PCSCDemoViewController.swift */,
 				953AB4FD21A4107900A1823A /* RawCommandServiceDemoViewController.swift */,
+				C9CF64EE25F31BFF00E8A8D3 /* RawCommandOpenPGPServiceDemoViewController.swift */,
 				955355602203153000D633F3 /* FIDO2DemoViewController.swift */,
 				95C70DDE224A2FE70024E220 /* U2FDemoViewController.swift */,
 			);
@@ -535,6 +538,7 @@
 				955355612203153000D633F3 /* FIDO2DemoViewController.swift in Sources */,
 				952C3C06203D751C0000A115 /* QRCodeScanResultsView.swift in Sources */,
 				9576AF3D224AAE4C00CA7C1B /* WebAuthnCreateUserResponse.swift in Sources */,
+				C9CF64EF25F31BFF00E8A8D3 /* RawCommandOpenPGPServiceDemoViewController.swift in Sources */,
 				95885AFB209B42F700828D02 /* NamedColors.swift in Sources */,
 				95A04D1822523336008E3036 /* AccessorySessionObserver.swift in Sources */,
 				957DE0EC2031B52D00B53569 /* OTPScanContainerView.swift in Sources */,

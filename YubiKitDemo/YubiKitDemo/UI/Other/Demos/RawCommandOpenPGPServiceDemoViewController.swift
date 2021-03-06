@@ -15,7 +15,7 @@
 
 import UIKit
 
-class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController {
+class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController, UITextFieldDelegate {
 
     private enum ViewControllerKeyType {
         case none
@@ -25,6 +25,13 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController {
 
     private let swCodeSuccess: UInt16 = 0x9000
     private var keyType: ViewControllerKeyType = .none
+    private var pin: String?
+
+    // This ciphertext/expected cleartext pair are only valid for my keypair.
+    // You will need to update them with values valid for a keypair you have
+    // for the result of the deciphering to equal the expected cleartext.
+    private let ecdhCiphertextBytes: [UInt8] = [0x39, 0x89, 0x48, 0x9E, 0x0E, 0x82, 0x1B, 0xB8, 0xF7, 0x34, 0x8C, 0xE0, 0x62, 0x55, 0x27, 0x0A, 0xAE, 0xD2, 0x50, 0xA7, 0x35, 0x9D, 0x18, 0x20, 0x02, 0xAF, 0x0E, 0x4F, 0xDF, 0x11, 0x69, 0x6C]
+    private let expectedCleartextBytes: [UInt8] = [0xA7, 0xA5, 0xC8, 0xF2, 0xCC, 0x5B, 0xDB, 0xC0, 0x1E, 0x44, 0xFC, 0xB5, 0xAA, 0x61, 0x5F, 0x28, 0x35, 0x31, 0xA8, 0x7B, 0x29, 0xF0, 0xA5, 0x0B, 0x57, 0xDD, 0x08, 0x30, 0x97, 0x33, 0xE3, 0x29]
 
     // MARK: - Outlets
 
@@ -33,6 +40,30 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController {
 
     // MARK: - Actions
     @IBAction func runDemoButtonPressed(_ sender: Any) {
+        let alert = UIAlertController(title: "Enter PIN", message: nil, preferredStyle: .alert)
+        alert.addTextField {
+            $0.autocapitalizationType = .none
+            $0.autocorrectionType = .no
+            $0.enablesReturnKeyAutomatically = true
+            $0.keyboardType = .asciiCapable
+            $0.returnKeyType = .done
+            $0.smartDashesType = .no
+            $0.smartInsertDeleteType = .no
+            $0.smartQuotesType = .no
+
+            $0.delegate = self
+        }
+        present(alert, animated: true, completion: nil)
+    }
+
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        pin = textField.text
+        runDemo()
+        presentedViewController?.dismiss(animated: true, completion: nil)
+        return true
+    }
+
+    private func runDemo() {
         YubiKitExternalLocalization.nfcScanAlertMessage = "Insert YubiKey or scan over the top edge of your iPhone";
         let keyConnected = YubiKitManager.shared.accessorySession.sessionState == .open
 
@@ -70,6 +101,11 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController {
     // MARK: - Raw Command Service Example
 
     private func runOpenPGPDemo(keyService: YKFKeyRawCommandServiceProtocol?) {
+        guard let pin = pin else {
+            log(message: "No PIN specified")
+            return
+        }
+
         let keyPluggedIn = YubiKitManager.shared.accessorySession.sessionState == .open
         if keyPluggedIn {
             let serialNumber = YubiKitManager.shared.accessorySession.accessoryDescription!.serialNumber
@@ -80,6 +116,7 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController {
             log(message: "The key is not connected")
             return
         }
+
 
         let selectOpenPGPCommand = Data([0x00, 0xA4, 0x04, 0x00, 0x06, 0xD2, 0x76, 0x00, 0x01, 0x24, 0x01])
         guard let selectOpenPGPApdu = YKFAPDU(data: selectOpenPGPCommand) else {
@@ -106,12 +143,12 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController {
         })
 
 
-        let getOpenPGPURLCommand = Data([0x00, 0xCA, 0x5F, 0x50, 0x00])
-        guard let getOpenPGPURLApdu = YKFAPDU(data: getOpenPGPURLCommand) else {
+        let getURLCommand = Data([0x00, 0xCA, 0x5F, 0x50, 0x00])
+        guard let getURLApdu = YKFAPDU(data: getURLCommand) else {
             return
         }
 
-        keyService.executeSyncCommand(getOpenPGPURLApdu, completion: { [weak self] (response, error) in
+        keyService.executeSyncCommand(getURLApdu, completion: { [weak self] (response, error) in
             guard let self = self else {
                 return
             }
@@ -129,6 +166,67 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController {
                 self.log(message: "Got URL: \(url)")
             } else {
                 self.log(message: "Failed to get URL. SW returned by the key: \(statusCode).")
+            }
+        })
+
+
+        guard let pinData = pin.data(using: .utf8) else {
+            return
+        }
+        var verifyDecipherPINCommand = Data([0x00, 0x20, 0x00, 0x82])
+        verifyDecipherPINCommand.append(UInt8(pin.lengthOfBytes(using: .utf8)))
+        verifyDecipherPINCommand.append(pinData)
+        guard let verifyDecipherPINApdu = YKFAPDU(data: verifyDecipherPINCommand) else {
+            return
+        }
+
+        keyService.executeSyncCommand(verifyDecipherPINApdu, completion: { [weak self] (response, error) in
+            guard let self = self else {
+                return
+            }
+            guard error == nil else {
+                self.log(message: "Error when executing command: \(error!.localizedDescription)")
+                return
+            }
+
+            let responseParser = RawDemoResponseParser(response: response!)
+            let statusCode = responseParser.statusCode
+
+            if statusCode == self.swCodeSuccess {
+                self.log(message: "PIN correct, deciphering…")
+            } else {
+                self.log(message: "Failed to verify PIN was correct. SW returned by the key: \(statusCode).")
+            }
+        })
+
+
+        var decipherECDHCiphertextCommand = Data([0x00, 0x2A, 0x80, 0x86, 0x27, 0xa6, 0x25, 0x7f, 0x49, 0x22, 0x86, 0x20])
+        decipherECDHCiphertextCommand.append(contentsOf: ecdhCiphertextBytes)
+        guard let decipherECDHCiphertextApdu = YKFAPDU(data: decipherECDHCiphertextCommand) else {
+            return
+        }
+
+        keyService.executeSyncCommand(decipherECDHCiphertextApdu, completion: { [weak self] (response, error) in
+            guard let self = self else {
+                return
+            }
+            guard error == nil else {
+                self.log(message: "Error when executing command: \(error!.localizedDescription)")
+                return
+            }
+
+            let responseParser = RawDemoResponseParser(response: response!)
+            let statusCode = responseParser.statusCode
+
+            if statusCode == self.swCodeSuccess {
+                self.log(message: "Decipher successful, comparing with expected cleartext…")
+                if responseParser.responseData == Data(self.expectedCleartextBytes) {
+                    self.log(message: "Got expected cleartext.")
+                } else {
+                    self.log(message: "Got unexpected cleartext.")
+                }
+            } else {
+                self.log(message: "Failed to decipher. SW returned by the key: \(statusCode).")
             }
         })
     }
