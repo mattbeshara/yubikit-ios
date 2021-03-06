@@ -469,7 +469,7 @@
                                     <action selector="runDemoButtonPressed:" destination="yQk-ds-5JO" eventType="touchUpInside" id="zSE-Ld-cqn"/>
                                 </connections>
                             </button>
-                            <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" editable="NO" textAlignment="natural" selectable="NO" translatesAutoresizingMaskIntoConstraints="NO" id="IDg-yK-K11">
+                            <textView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" editable="NO" textAlignment="natural" translatesAutoresizingMaskIntoConstraints="NO" id="IDg-yK-K11">
                                 <rect key="frame" x="20" y="73.5" width="374" height="571.5"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <color key="textColor" systemColor="labelColor"/>
