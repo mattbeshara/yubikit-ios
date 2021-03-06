@@ -27,11 +27,12 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController, U
     private var keyType: ViewControllerKeyType = .none
     private var pin: String?
 
-    // This ciphertext/expected cleartext pair are only valid for my keypair.
+    // This ciphertext/expected plaintext pair are only valid for my keypair.
     // You will need to update them with values valid for a keypair you have
-    // for the result of the deciphering to equal the expected cleartext.
-    private let ecdhCiphertextBytes: [UInt8] = [0x39, 0x89, 0x48, 0x9E, 0x0E, 0x82, 0x1B, 0xB8, 0xF7, 0x34, 0x8C, 0xE0, 0x62, 0x55, 0x27, 0x0A, 0xAE, 0xD2, 0x50, 0xA7, 0x35, 0x9D, 0x18, 0x20, 0x02, 0xAF, 0x0E, 0x4F, 0xDF, 0x11, 0x69, 0x6C]
-    private let expectedCleartextBytes: [UInt8] = [0xA7, 0xA5, 0xC8, 0xF2, 0xCC, 0x5B, 0xDB, 0xC0, 0x1E, 0x44, 0xFC, 0xB5, 0xAA, 0x61, 0x5F, 0x28, 0x35, 0x31, 0xA8, 0x7B, 0x29, 0xF0, 0xA5, 0x0B, 0x57, 0xDD, 0x08, 0x30, 0x97, 0x33, 0xE3, 0x29]
+    // for the result of the deciphering to equal the expected plaintext.
+    private let ecdhCiphertextBytes: [UInt8] =
+        [0x39, 0x89, 0x48, 0x9E, 0x0E, 0x82, 0x1B, 0xB8, 0xF7, 0x34, 0x8C, 0xE0, 0x62, 0x55, 0x27, 0x0A, 0xAE, 0xD2, 0x50, 0xA7, 0x35, 0x9D, 0x18, 0x20, 0x02, 0xAF, 0x0E, 0x4F, 0xDF, 0x11, 0x69, 0x6C]
+    private let plaintextBytes: [UInt8] = [0xA7, 0xA5, 0xC8, 0xF2, 0xCC, 0x5B, 0xDB, 0xC0, 0x1E, 0x44, 0xFC, 0xB5, 0xAA, 0x61, 0x5F, 0x28, 0x35, 0x31, 0xA8, 0x7B, 0x29, 0xF0, 0xA5, 0x0B, 0x57, 0xDD, 0x08, 0x30, 0x97, 0x33, 0xE3, 0x29]
 
     // MARK: - Outlets
 
@@ -101,7 +102,7 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController, U
     // MARK: - Raw Command Service Example
 
     private func runOpenPGPDemo(keyService: YKFKeyRawCommandServiceProtocol?) {
-        guard let pin = pin else {
+        guard let pinData = pin?.data(using: .utf8) else {
             log(message: "No PIN specified")
             return
         }
@@ -170,11 +171,8 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController, U
         })
 
 
-        guard let pinData = pin.data(using: .utf8) else {
-            return
-        }
         var verifyDecipherPINCommand = Data([0x00, 0x20, 0x00, 0x82])
-        verifyDecipherPINCommand.append(UInt8(pin.lengthOfBytes(using: .utf8)))
+        verifyDecipherPINCommand.append(UInt8(pinData.count))
         verifyDecipherPINCommand.append(pinData)
         guard let verifyDecipherPINApdu = YKFAPDU(data: verifyDecipherPINCommand) else {
             return
@@ -193,14 +191,16 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController, U
             let statusCode = responseParser.statusCode
 
             if statusCode == self.swCodeSuccess {
-                self.log(message: "PIN correct, deciphering…")
+                let formattedData = Data(self.ecdhCiphertextBytes).base64EncodedString()
+                self.log(message: "PIN correct, deciphering ciphertext: \(formattedData)")
             } else {
                 self.log(message: "Failed to verify PIN was correct. SW returned by the key: \(statusCode).")
             }
         })
 
 
-        var decipherECDHCiphertextCommand = Data([0x00, 0x2A, 0x80, 0x86, 0x27, 0xa6, 0x25, 0x7f, 0x49, 0x22, 0x86, 0x20])
+        var decipherECDHCiphertextCommand = Data([0x00, 0x2A, 0x80, 0x86, 0x27, 0xa6, 0x25, 0x7f, 0x49, 0x22, 0x86])
+        decipherECDHCiphertextCommand.append(UInt8(ecdhCiphertextBytes.count))
         decipherECDHCiphertextCommand.append(contentsOf: ecdhCiphertextBytes)
         guard let decipherECDHCiphertextApdu = YKFAPDU(data: decipherECDHCiphertextCommand) else {
             return
@@ -219,14 +219,68 @@ class RawCommandOpenPGPServiceDemoViewController: OtherDemoRootViewController, U
             let statusCode = responseParser.statusCode
 
             if statusCode == self.swCodeSuccess {
-                self.log(message: "Decipher successful, comparing with expected cleartext…")
-                if responseParser.responseData == Data(self.expectedCleartextBytes) {
-                    self.log(message: "Got expected cleartext.")
+                self.log(message: "Decipher successful, comparing with expected plaintext…")
+                let formattedData = responseParser.responseData?.base64EncodedString() ?? "<responseData was nil>"
+                if responseParser.responseData == Data(self.plaintextBytes) {
+                    self.log(message: "Got expected plaintext: \(formattedData)")
                 } else {
-                    self.log(message: "Got unexpected cleartext.")
+                    self.log(message: "Got unexpected plaintext: \(formattedData)")
                 }
             } else {
                 self.log(message: "Failed to decipher. SW returned by the key: \(statusCode).")
+            }
+        })
+
+        var verifySignPINCommand = Data([0x00, 0x20, 0x00, 0x81])
+        verifySignPINCommand.append(UInt8(pinData.count))
+        verifySignPINCommand.append(pinData)
+        guard let verifySignPINApdu = YKFAPDU(data: verifySignPINCommand) else {
+            return
+        }
+
+        keyService.executeSyncCommand(verifySignPINApdu, completion: { [weak self] (response, error) in
+            guard let self = self else {
+                return
+            }
+            guard error == nil else {
+                self.log(message: "Error when executing command: \(error!.localizedDescription)")
+                return
+            }
+
+            let responseParser = RawDemoResponseParser(response: response!)
+            let statusCode = responseParser.statusCode
+
+            if statusCode == self.swCodeSuccess {
+                self.log(message: "PIN correct, signing ciphertext…")
+            } else {
+                self.log(message: "Failed to verify PIN was correct. SW returned by the key: \(statusCode).")
+            }
+        })
+
+        var signCiphertextCommand = Data([0x00, 0x2A, 0x9E, 0x9A])
+        signCiphertextCommand.append(UInt8(ecdhCiphertextBytes.count))
+        signCiphertextCommand.append(contentsOf: ecdhCiphertextBytes)
+        guard let signCiphertextApdu = YKFAPDU(data: signCiphertextCommand) else {
+            return
+        }
+
+        keyService.executeSyncCommand(signCiphertextApdu, completion: { [weak self] (response, error) in
+            guard let self = self else {
+                return
+            }
+            guard error == nil else {
+                self.log(message: "Error when executing command: \(error!.localizedDescription)")
+                return
+            }
+
+            let responseParser = RawDemoResponseParser(response: response!)
+            let statusCode = responseParser.statusCode
+
+            if statusCode == self.swCodeSuccess {
+                let formattedData = responseParser.responseData?.base64EncodedString() ?? "<responseData was nil>"
+                self.log(message: "Signing successful, got signature data: \(formattedData)")
+            } else {
+                self.log(message: "Failed to sign. SW returned by the key: \(statusCode).")
             }
         })
     }
